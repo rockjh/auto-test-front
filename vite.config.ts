@@ -1,8 +1,21 @@
 import {resolve} from 'path'
 import type {ConfigEnv, UserConfig} from 'vite'
 import {loadEnv} from 'vite'
-import {createVitePlugins} from './build/vite'
-import {exclude, include} from "./build/vite/optimize"
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const jitiModule: any = require('jiti')
+if (jitiModule && typeof jitiModule.createJiti !== 'function') {
+  jitiModule.createJiti = (...args: any[]) => (jitiModule as any)(...args)
+}
+const unconfigEntry = require.resolve('unconfig')
+const unconfigRequire = createRequire(unconfigEntry)
+const unconfigJiti: any = unconfigRequire('jiti')
+if (unconfigJiti && typeof unconfigJiti.createJiti !== 'function') {
+  unconfigJiti.createJiti = (...args: any[]) => (unconfigJiti as any)(...args)
+}
+
+
 // 当前执行node命令时文件夹的地址(工作目录)
 const root = process.cwd()
 
@@ -12,7 +25,7 @@ function pathResolve(dir: string) {
 }
 
 // https://vitejs.dev/config/
-export default ({command, mode}: ConfigEnv): UserConfig => {
+export default async ({command, mode}: ConfigEnv): Promise<UserConfig> => {
     let env = {} as any
     const isBuild = command === 'build'
     if (!isBuild) {
@@ -20,12 +33,16 @@ export default ({command, mode}: ConfigEnv): UserConfig => {
     } else {
         env = loadEnv(mode, root)
     }
+    const { createVitePlugins } = await import('./build/vite')
+    const { exclude, include } = await import('./build/vite/optimize')
+    const envPort = Number(env.VITE_PORT)
+    const serverPort = envPort >= 1024 ? envPort : 5173
     return {
         base: env.VITE_BASE_PATH,
         root: root,
         // 服务端渲染
         server: {
-            port: env.VITE_PORT, // 端口号
+            port: serverPort, // 端口号
             host: "0.0.0.0",
             open: env.VITE_OPEN === 'true',
             // 本地跨域代理. 目前注释的原因：暂时没有用途，server 端已经支持跨域
@@ -39,7 +56,7 @@ export default ({command, mode}: ConfigEnv): UserConfig => {
             // },
         },
         // 项目使用的vite插件。 单独提取到build/vite/plugin中管理
-        plugins: createVitePlugins(),
+        plugins: createVitePlugins({ isBuild }),
         css: {
             preprocessorOptions: {
                 scss: {

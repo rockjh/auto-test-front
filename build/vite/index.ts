@@ -13,10 +13,14 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 import viteCompression from 'vite-plugin-compression'
 import topLevelAwait from 'vite-plugin-top-level-await'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons-ng'
 import UnoCSS from 'unocss/vite'
+import { createSvgIconsLite } from './svg-icons-lite'
 
-export function createVitePlugins() {
+interface CreateVitePluginOptions {
+  isBuild: boolean
+}
+
+export function createVitePlugins({ isBuild }: CreateVitePluginOptions) {
   const root = process.cwd()
 
   // 路径查找
@@ -24,7 +28,7 @@ export function createVitePlugins() {
     return resolve(root, '.', dir)
   }
 
-  return [
+  const plugins = [
     Vue(),
     VueJsx(),
     UnoCSS(),
@@ -66,16 +70,12 @@ export function createVitePlugins() {
       resolvers: [ElementPlusResolver()],
       globs: ["src/components/**/**.{vue, md}", '!src/components/DiyEditor/components/mobile/**']
     }),
-    EslintPlugin({
-      cache: false,
-      include: ['src/**/*.vue', 'src/**/*.ts', 'src/**/*.tsx'] // 检查的文件
-    }),
     VueI18nPlugin({
       runtimeOnly: true,
       compositionOnly: true,
       include: [resolve(__dirname, 'src/locales/**')]
     }),
-    createSvgIconsPlugin({
+    createSvgIconsLite({
       iconDirs: [pathResolve('src/assets/svgs')],
       symbolId: 'icon-[dir]-[name]',
     }),
@@ -96,4 +96,13 @@ export function createVitePlugins() {
       promiseImportName: (i) => `__tla_${i}`
     })
   ]
+
+  if (!isBuild) {
+    plugins.splice(6, 0, EslintPlugin({
+      cache: false,
+      include: ['src/**/*.vue', 'src/**/*.ts', 'src/**/*.tsx'] // 检查的文件
+    }))
+  }
+
+  return plugins
 }

@@ -1,29 +1,4 @@
 <template>
-  <!-- 定义 tab 组件：撰写/回复等 -->
-  <DefineTab v-slot="{ active, text, itemClick }">
-    <span
-      :class="active ? 'text-black shadow-md' : 'hover:bg-[#DDDFE3]'"
-      class="inline-block w-1/2 rounded-full cursor-pointer text-center leading-[30px] relative z-1 text-[5C6370] hover:text-black"
-      @click="itemClick"
-    >
-      {{ text }}
-    </span>
-  </DefineTab>
-  <!-- 定义 label 组件：长度/格式/语气/语言等 -->
-  <DefineLabel v-slot="{ label, hint, hintClick }">
-    <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
-      <span>{{ label }}</span>
-      <span
-        v-if="hint"
-        class="flex items-center text-[12px] text-[#846af7] cursor-pointer select-none"
-        @click="hintClick"
-      >
-        <Icon icon="ep:question-filled" />
-        {{ hint }}
-      </span>
-    </h3>
-  </DefineLabel>
-
   <div class="flex flex-col" v-bind="$attrs">
     <!-- tab -->
     <div class="w-full pt-2 bg-[#f5f7f9] flex justify-center">
@@ -34,13 +9,17 @@
           "
           class="flex items-center relative after:content-[''] after:block after:bg-white after:h-[30px] after:w-1/2 after:absolute after:top-0 after:left-0 after:transition-transform after:rounded-full"
         >
-          <ReuseTab
+          <span
             v-for="tab in tabs"
             :key="tab.value"
-            :active="tab.value === selectedTab"
-            :itemClick="() => switchTab(tab.value)"
-            :text="tab.text"
-          />
+            :class="[
+              'inline-block w-1/2 rounded-full cursor-pointer text-center leading-[30px] relative z-1 text-[5C6370] hover:text-black',
+              tab.value === selectedTab ? 'text-black shadow-md' : 'hover:bg-[#DDDFE3]'
+            ]"
+            @click="() => switchTab(tab.value)"
+          >
+            {{ tab.text }}
+          </span>
         </div>
       </div>
     </div>
@@ -49,7 +28,16 @@
     >
       <div>
         <template v-if="selectedTab === 1">
-          <ReuseLabel :hint-click="() => example('write')" hint="示例" label="写作内容" />
+          <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+            <span>写作内容</span>
+            <span
+              class="flex items-center text-[12px] text-[#846af7] cursor-pointer select-none"
+              @click="() => example('write')"
+            >
+              <Icon icon="ep:question-filled" />
+              示例
+            </span>
+          </h3>
           <el-input
             v-model="formData.prompt"
             :maxlength="500"
@@ -61,7 +49,16 @@
         </template>
 
         <template v-else>
-          <ReuseLabel :hint-click="() => example('reply')" hint="示例" label="原文" />
+          <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+            <span>原文</span>
+            <span
+              class="flex items-center text-[12px] text-[#846af7] cursor-pointer select-none"
+              @click="() => example('reply')"
+            >
+              <Icon icon="ep:question-filled" />
+              示例
+            </span>
+          </h3>
           <el-input
             v-model="formData.originalContent"
             :maxlength="500"
@@ -71,7 +68,9 @@
             type="textarea"
           />
 
-          <ReuseLabel label="回复内容" />
+          <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+            <span>回复内容</span>
+          </h3>
           <el-input
             v-model="formData.prompt"
             :maxlength="500"
@@ -82,13 +81,21 @@
           />
         </template>
 
-        <ReuseLabel label="长度" />
+        <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+          <span>长度</span>
+        </h3>
         <Tag v-model="formData.length" :tags="getIntDictOptions(DICT_TYPE.AI_WRITE_LENGTH)" />
-        <ReuseLabel label="格式" />
+        <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+          <span>格式</span>
+        </h3>
         <Tag v-model="formData.format" :tags="getIntDictOptions(DICT_TYPE.AI_WRITE_FORMAT)" />
-        <ReuseLabel label="语气" />
+        <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+          <span>语气</span>
+        </h3>
         <Tag v-model="formData.tone" :tags="getIntDictOptions(DICT_TYPE.AI_WRITE_TONE)" />
-        <ReuseLabel label="语言" />
+        <h3 class="mt-5 mb-3 flex items-center justify-between text-[14px]">
+          <span>语言</span>
+        </h3>
         <Tag v-model="formData.language" :tags="getIntDictOptions(DICT_TYPE.AI_WRITE_LANGUAGE)" />
 
         <div class="flex items-center justify-center mt-3">
@@ -101,7 +108,6 @@
 </template>
 
 <script lang="ts" setup>
-import { createReusableTemplate } from '@vueuse/core'
 import { ref } from 'vue'
 import Tag from './Tag.vue'
 import { WriteVO } from '@/api/ai/write'
@@ -146,28 +152,6 @@ const tabs: {
   { text: '撰写', value: AiWriteTypeEnum.WRITING },
   { text: '回复', value: AiWriteTypeEnum.REPLY }
 ]
-const [DefineTab, ReuseTab] = createReusableTemplate<{
-  active?: boolean
-  text: string
-  itemClick: () => void
-}>()
-
-/**
- * 可以在 template 里边定义可复用的组件，DefineLabel，ReuseLabel 是采用的解构赋值，都是 Vue 组件
- *
- * 直接通过组件的形式使用，<DefineLabel v-slot="{ label, hint, hintClick }"> 中间是需要复用的组件代码 <DefineLabel />，通过 <ReuseLabel /> 来使用定义的组件
- * DefineLabel 里边的 v-slot="{ label, hint, hintClick }"相当于是解构了组件的 prop，需要注意的是 boolean 类型，需要显式的赋值比如 <ReuseLabel :flag="true" />
- * 事件也得以 prop 形式传入，不能是 @event的形式，比如下面的 hintClick 需要<ReuseLabel :hintClick="() => { doSomething }"/>
- *
- * @see https://vueuse.org/createReusableTemplate
- */
-const [DefineLabel, ReuseLabel] = createReusableTemplate<{
-  label: string
-  class?: string
-  hint?: string
-  hintClick?: () => void
-}>()
-
 const initData: WriteVO = {
   type: 1,
   prompt: '',
